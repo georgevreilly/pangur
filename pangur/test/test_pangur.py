@@ -1,6 +1,6 @@
 import pytest
 
-from ..pangur import compare_tree, FileEntry, DirEntry, State
+from ..pangur import compare_tree, FileEntry, DirEntry, State, Policy
 
 
 def check_expected(actual, expected):
@@ -9,41 +9,41 @@ def check_expected(actual, expected):
 
 
 def test_pangur_same():
-    src_dir = DirEntry("/", entries=[
+    src_dir = DirEntry("/", mode=0o755, entries=[
         FileEntry("foo", 1000, 500, 0o664),
         FileEntry("bar", 2000, 800, 0o664),
     ])
-    actual = compare_tree("/", src_dir, src_dir)
+    actual = compare_tree("/", src_dir, src_dir, Policy())
     check_expected(actual, [("/", "bar", State.Same), ("/", "foo", State.Same)])
 
 
 def test_pangur_newer():
-    src_dir = DirEntry("/", entries=[
+    src_dir = DirEntry("/", mode=0o755, entries=[
         FileEntry("foo", 3000, 500, 0o664),
         FileEntry("bar", 2000, 800, 0o664),
     ])
-    dst_dir = DirEntry("/", entries=[
+    dst_dir = DirEntry("/", mode=0o755, entries=[
         FileEntry("foo", 1000, 500, 0o664),
         FileEntry("bar", 2000, 800, 0o664),
     ])
-    actual = compare_tree("/", src_dir, dst_dir)
+    actual = compare_tree("/", src_dir, dst_dir, Policy())
     check_expected(actual, [("/", "bar", State.Same), ("/", "foo", State.SrcNewer)])
 
 
 def test_pangur_newer_more():
-    src_dir = DirEntry("/", entries=[
+    src_dir = DirEntry("/", mode=0o755, entries=[
         FileEntry("foo", 3000, 500, 0o664),
         FileEntry("baz", 5000, 800, 0o664),
         FileEntry("bar", 2000, 800, 0o664),
         FileEntry("miz", 6000, 800, 0o664),
         FileEntry("wiz", 6000, 800, 0o664),
     ])
-    dst_dir = DirEntry("/", entries=[
+    dst_dir = DirEntry("/", mode=0o755, entries=[
         FileEntry("foo", 1000, 500, 0o664),
         FileEntry("bar", 2000, 800, 0o664),
         FileEntry("quux", 4000, 800, 0o664),
     ])
-    actual = compare_tree("/", src_dir, dst_dir)
+    actual = compare_tree("/", src_dir, dst_dir, Policy())
     check_expected(actual, [
         ("/", "bar", State.Same),
         ("/", "baz", State.SrcOnly),

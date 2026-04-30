@@ -13,12 +13,15 @@ class FileEntry:
     timestamp: float
     size: int
     mode: int
+    # TODO: user, group, xattrs
 
 
 @dataclass
 class DirEntry:
     name: str
+    mode: int
     entries: list[ FileEntry | DirEntry]
+    # TODO: user, group, xattrs
 
 
 class Operation(Enum):
@@ -39,17 +42,32 @@ class State(Enum):
     Weird = auto()
 
 
-def compare_time(ts1: float, ts2: float, window: float = 0.0):
-    diff = ts2 - ts1
-    if diff > window:
-        return 1
-    elif diff < -window:
-        return -1
-    else:
-        return 0
+@dataclass
+class Policy:
+    modify_window: int = 0
+
+    def compare_time(self, t1: float, t2: float):
+        delta = t2 - t1
+        if self.modify_window and -self.modify_window <= delta < self.modify_window:
+            return 0
+        if delta > 0:
+            return 1
+        elif delta < 0:
+            return -1
+        else:
+            return 0
+
+    def compare_names(self, n1: str, n2: str):
+        # TODO: case-insensitive, case-preserving, Unicode normalization
+        if n1 == n2:
+            return 0
+        elif n1 < n2:
+            return -1
+        else:
+            return +1
 
 
-def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, window: float = 0.0):
+def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
     srcs = sorted(srcdir.entries, key=lambda e: e.name)
     dsts = sorted(dstdir.entries, key=lambda e: e.name)
     results: list[tuple[str, FileEntry | DirEntry, State]] = []
@@ -57,17 +75,22 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, window: float = 
     while i < len(srcs) and j < len(dsts):
         src = srcs[i]
         dst = dsts[j]
-        if src.name < dst.name:
+        name_cmp = policy.compare_names(src.name, dst.name)
+        if name_cmp < 0:
+            # TODO: DirEntry
             results.append((path, src, State.SrcOnly))
             i += 1
-        elif src.name > dst.name:
+        elif name_cmp > 0:
+            # TODO: DirEntry
             results.append((path, dst, State.DstOnly))
             j += 1
-        elif src.name == dst.name:
+        elif name_cmp == 0:
             if isinstance(src, DirEntry) and isinstance(dst, DirEntry):
-                results.extend(compare_tree(path + "/" + src.name, src, dst, window))
+                # TODO: Pre
+                results.extend(compare_tree(path + "/" + src.name, src, dst, policy))
+                # TODO: Post
             elif isinstance(src, FileEntry) and isinstance(dst, FileEntry):
-                time_diff = compare_time(src.timestamp, dst.timestamp, window)
+                time_diff = policy.compare_time(src.timestamp, dst.timestamp)
                 if time_diff == 0 and src.size == dst.size:
                     results.append((path, src, State.Same))
                 elif time_diff < 0:
