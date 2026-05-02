@@ -7,6 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import auto, Enum
 
+
 @dataclass
 class FileEntry:
     name: str
@@ -20,7 +21,7 @@ class FileEntry:
 class DirEntry:
     name: str
     mode: int
-    entries: list[ FileEntry | DirEntry]
+    entries: list[FileEntry | DirEntry]
     # TODO: user, group, xattrs
 
 
@@ -77,17 +78,40 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
         dst = dsts[j]
         name_cmp = policy.compare_names(src.name, dst.name)
         if name_cmp < 0:
-            # TODO: DirEntry
-            results.append((path, src, State.SrcOnly))
+            if isinstance(src, DirEntry):
+                # TODO: Pre
+                results.extend(
+                    compare_tree(
+                        path + src.name + "/",
+                        src,
+                        DirEntry(".", mode=0, entries=[]),
+                        policy,
+                    )
+                )
+                # TODO: Post
+            else:
+                results.append((path, src, State.SrcOnly))
             i += 1
         elif name_cmp > 0:
+            if isinstance(dst, DirEntry):
+                # TODO: Pre
+                results.extend(
+                    compare_tree(
+                        path + dst.name + "/",
+                        DirEntry(".", mode=0, entries=[]),
+                        dst,
+                        policy,
+                    )
+                )
+                # TODO: Post
+            else:
+                results.append((path, dst, State.DstOnly))
             # TODO: DirEntry
-            results.append((path, dst, State.DstOnly))
             j += 1
         elif name_cmp == 0:
             if isinstance(src, DirEntry) and isinstance(dst, DirEntry):
                 # TODO: Pre
-                results.extend(compare_tree(path + "/" + src.name, src, dst, policy))
+                results.extend(compare_tree(path + src.name + "/", src, dst, policy))
                 # TODO: Post
             elif isinstance(src, FileEntry) and isinstance(dst, FileEntry):
                 time_diff = policy.compare_time(src.timestamp, dst.timestamp)
@@ -101,7 +125,8 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                     results.append((path, src, State.SizeDiffer))
                 else:
                     results.append((path, src, State.Weird))
-            i += 1; j += 1
+            i += 1
+            j += 1
         else:
             print(f"Huh: i={i}, j={i}")
 
