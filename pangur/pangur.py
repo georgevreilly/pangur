@@ -25,6 +25,9 @@ class DirEntry:
     # TODO: user, group, xattrs
 
 
+# TODO: Symlink: relative only, within tree
+
+
 class Operation(Enum):
     NoOp = auto()
     SrcCopy = auto()
@@ -47,7 +50,7 @@ class State(Enum):
 class Policy:
     modify_window: int = 0
 
-    def compare_time(self, t1: float, t2: float):
+    def compare_times(self, t1: float, t2: float):
         delta = t2 - t1
         if self.modify_window and -self.modify_window <= delta < self.modify_window:
             return 0
@@ -58,11 +61,15 @@ class Policy:
         else:
             return 0
 
-    def compare_names(self, n1: str, n2: str):
+    def compare_names(self, e1: FileEntry | DirEntry, e2: FileEntry | DirEntry):
         # TODO: case-insensitive, case-preserving, Unicode normalization
-        if n1 == n2:
+        if e1 is None:
+            return 1
+        elif e2 is None:
+            return -1
+        if e1.name == e2.name:
             return 0
-        elif n1 < n2:
+        elif e1.name < e2.name:
             return -1
         else:
             return +1
@@ -73,10 +80,12 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
     dsts = sorted(dstdir.entries, key=lambda e: e.name)
     results: list[tuple[str, FileEntry | DirEntry, State]] = []
     i = j = 0
-    while i < len(srcs) and j < len(dsts):
-        src = srcs[i]
-        dst = dsts[j]
-        name_cmp = policy.compare_names(src.name, dst.name)
+
+    while i < len(srcs) or j < len(dsts):
+        src = srcs[i] if i < len(srcs) else None
+        dst = dsts[j] if j < len(dsts) else None
+        name_cmp = policy.compare_names(src, dst)
+
         if name_cmp < 0:
             if isinstance(src, DirEntry):
                 # TODO: Pre
@@ -84,7 +93,7 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                     compare_tree(
                         path + src.name + "/",
                         src,
-                        DirEntry(".", mode=0, entries=[]),
+                        DirEntry("", mode=0, entries=[]),
                         policy,
                     )
                 )
@@ -98,7 +107,7 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                 results.extend(
                     compare_tree(
                         path + dst.name + "/",
-                        DirEntry(".", mode=0, entries=[]),
+                        DirEntry("", mode=0, entries=[]),
                         dst,
                         policy,
                     )
@@ -106,7 +115,6 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                 # TODO: Post
             else:
                 results.append((path, dst, State.DstOnly))
-            # TODO: DirEntry
             j += 1
         elif name_cmp == 0:
             if isinstance(src, DirEntry) and isinstance(dst, DirEntry):
@@ -114,7 +122,7 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                 results.extend(compare_tree(path + src.name + "/", src, dst, policy))
                 # TODO: Post
             elif isinstance(src, FileEntry) and isinstance(dst, FileEntry):
-                time_diff = policy.compare_time(src.timestamp, dst.timestamp)
+                time_diff = policy.compare_times(src.timestamp, dst.timestamp)
                 if time_diff == 0 and src.size == dst.size:
                     results.append((path, src, State.Same))
                 elif time_diff < 0:
@@ -125,16 +133,10 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                     results.append((path, src, State.SizeDiffer))
                 else:
                     results.append((path, src, State.Weird))
+                # TODO: modes, user, group, etc
             i += 1
             j += 1
         else:
             print(f"Huh: i={i}, j={i}")
-
-    while i < len(srcs):
-        results.append((path, srcs[i], State.SrcOnly))
-        i += 1
-    while j < len(dsts):
-        results.append((path, dsts[j], State.DstOnly))
-        j += 1
 
     return results

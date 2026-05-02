@@ -159,6 +159,61 @@ def test_pangur_new_subdir():
     )
 
 
+def test_pangur_nested_subdirs():
+    src_dir = DirEntry(
+        "/",
+        mode=0o755,
+        entries=[
+            FileEntry("foo", 3000, 500, 0o664),
+            DirEntry(
+                "baz",
+                mode=0o775,
+                entries=[
+                    FileEntry("alpha", 6000, 500, 0o664),
+                    DirEntry(
+                        "beta",
+                        mode=0o775,
+                        entries=[
+                            DirEntry(
+                                "gamma",
+                                mode=0o775,
+                                entries=[
+                                    FileEntry("kappa", 6000, 500, 0o664),
+                                    FileEntry("lambda", 6000, 500, 0o664),
+                                ],
+                            ),
+                            FileEntry("epsilon", 6000, 500, 0o664),
+                            FileEntry("omega", 6000, 500, 0o664),
+                        ],
+                    ),
+                ],
+            ),
+            FileEntry("bar", 2000, 800, 0o664),
+        ],
+    )
+    dst_dir = DirEntry(
+        "/",
+        mode=0o755,
+        entries=[
+            FileEntry("foo", 1000, 500, 0o664),
+            FileEntry("bar", 2000, 800, 0o664),
+        ],
+    )
+    actual = compare_tree("/", src_dir, dst_dir, Policy())
+    check_expected(
+        actual,
+        [
+            ("/", "bar", State.Same),
+            ("/baz/", "alpha", State.SrcOnly),
+            ("/baz/beta/", "epsilon", State.SrcOnly),
+            ("/baz/beta/gamma/", "kappa", State.SrcOnly),
+            ("/baz/beta/gamma/", "lambda", State.SrcOnly),
+            ("/baz/beta/", "omega", State.SrcOnly),
+            ("/", "foo", State.SrcNewer),
+        ],
+    )
+
+
 def test_pangur_removed_subdir():
     src_dir = DirEntry(
         "/",
