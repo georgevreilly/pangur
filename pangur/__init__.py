@@ -1,0 +1,1 @@
+from .pangur import FileEntry
