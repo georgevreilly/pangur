@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-"""Pangur Bán is a poem written in Old Irish by a copyist (scribe)."""
+"""pangur implementation"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import auto, Enum
+from functools import cmp_to_key
 
 
 @dataclass
@@ -15,6 +16,10 @@ class Entry:
     # TODO: user, group, xattrs
 
 
+@dataclass
+class DirEntry(Entry):
+    entries: list[Entry]
+
 
 @dataclass
 class FileEntry(Entry):
@@ -23,16 +28,10 @@ class FileEntry(Entry):
 
 
 @dataclass
-class DirEntry(Entry):
-    entries: list[FileEntry | DirEntry]
-    # TODO: user, group, xattrs
-
-
-@dataclass
 class SymlinkEntry(Entry):
+    # Symlink: relative only, within tree
     target: str
 
-# TODO: Symlink: relative only, within tree
 
 
 class Operation(Enum):
@@ -68,7 +67,7 @@ class Policy:
         else:
             return 0
 
-    def compare_names(self, e1: FileEntry | DirEntry, e2: FileEntry | DirEntry):
+    def compare_names(self, e1: Entry, e2: Entry):
         # TODO: case-insensitive, case-preserving, Unicode normalization
         if e1 is None:
             return 1
@@ -83,9 +82,10 @@ class Policy:
 
 
 def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
-    srcs = sorted(srcdir.entries, key=lambda e: e.name)
-    dsts = sorted(dstdir.entries, key=lambda e: e.name)
-    results: list[tuple[str, FileEntry | DirEntry, State]] = []
+    key_func = cmp_to_key(policy.compare_names)
+    srcs = sorted(srcdir.entries, key=key_func)
+    dsts = sorted(dstdir.entries, key=key_func)
+    results: list[tuple[str, Entry, State]] = []
     i = j = 0
 
     while i < len(srcs) or j < len(dsts):
@@ -105,6 +105,9 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                     )
                 )
                 # TODO: Post
+            elif isinstance(src, SymlinkEntry):
+                # TODO: validate that symlink is relative and within src
+                pass
             else:
                 results.append((path, src, State.SrcOnly))
             i += 1
@@ -120,6 +123,9 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                     )
                 )
                 # TODO: Post
+            elif isinstance(dst, SymlinkEntry):
+                # TODO: validate
+                pass
             else:
                 results.append((path, dst, State.DstOnly))
             j += 1
@@ -128,6 +134,9 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                 # TODO: Pre
                 results.extend(compare_tree(path + src.name + "/", src, dst, policy))
                 # TODO: Post
+            elif isinstance(src, SymlinkEntry) and isinstance(dst, SymlinkEntry):
+                # TODO: something
+                pass
             elif isinstance(src, FileEntry) and isinstance(dst, FileEntry):
                 time_diff = policy.compare_times(src.timestamp, dst.timestamp)
                 if time_diff == 0 and src.size == dst.size:
@@ -144,6 +153,6 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
             i += 1
             j += 1
         else:
-            print(f"Huh: i={i}, j={i}")
+            print(f"Huh: {path=}, {src=}, {dst=}")
 
     return results
