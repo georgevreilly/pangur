@@ -9,21 +9,28 @@ from enum import auto, Enum
 
 
 @dataclass
-class FileEntry:
+class Entry:
     name: str
+    mode: int
+    # TODO: user, group, xattrs
+
+
+
+@dataclass
+class FileEntry(Entry):
     timestamp: float
     size: int
-    mode: int
+
+
+@dataclass
+class DirEntry(Entry):
+    entries: list[FileEntry | DirEntry]
     # TODO: user, group, xattrs
 
 
 @dataclass
-class DirEntry:
-    name: str
-    mode: int
-    entries: list[FileEntry | DirEntry]
-    # TODO: user, group, xattrs
-
+class SymlinkEntry(Entry):
+    target: str
 
 # TODO: Symlink: relative only, within tree
 

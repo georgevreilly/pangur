@@ -13,8 +13,8 @@ def test_pangur_same():
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 1000, 500, 0o664),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("foo", 0o664, 1000, 500),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     actual = compare_tree("/", src_dir, src_dir, Policy())
@@ -26,16 +26,16 @@ def test_pangur_newer():
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 3000, 500, 0o664),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("foo", 0o664, 3000, 500),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     dst_dir = DirEntry(
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 1000, 500, 0o664),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("foo", 0o664, 1000, 500),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -47,20 +47,20 @@ def test_pangur_newer_more():
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 3000, 500, 0o664),
-            FileEntry("baz", 5000, 800, 0o664),
-            FileEntry("bar", 2000, 800, 0o664),
-            FileEntry("miz", 6000, 800, 0o664),
-            FileEntry("wiz", 6000, 800, 0o664),
+            FileEntry("foo", 0o664, 3000, 500),
+            FileEntry("baz", 0o664, 5000, 800),
+            FileEntry("bar", 0o664, 2000, 800),
+            FileEntry("miz", 0o664, 6000, 800),
+            FileEntry("wiz", 0o664, 6000, 800),
         ],
     )
     dst_dir = DirEntry(
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 1000, 500, 0o664),
-            FileEntry("bar", 2000, 800, 0o664),
-            FileEntry("quux", 4000, 800, 0o664),
+            FileEntry("foo", 0o664, 1000, 500),
+            FileEntry("bar", 0o664, 2000, 800),
+            FileEntry("quux", 0o664, 4000, 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -82,32 +82,32 @@ def test_pangur_updated_subdir():
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 3000, 500, 0o664),
+            FileEntry("foo", 0o664, 3000, 500),
             DirEntry(
                 "baz",
                 mode=0o775,
                 entries=[
-                    FileEntry("alpha", 6000, 500, 0o664),
-                    FileEntry("beta", 5000, 500, 0o664),
+                    FileEntry("alpha", 0o664, 6000, 500),
+                    FileEntry("beta", 0o664, 5000, 500),
                 ],
             ),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     dst_dir = DirEntry(
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 1000, 500, 0o664),
+            FileEntry("foo", 0o664, 1000, 500),
             DirEntry(
                 "baz",
                 mode=0o775,
                 entries=[
-                    FileEntry("alpha", 4000, 500, 0o664),
-                    FileEntry("beta", 5000, 500, 0o664),
+                    FileEntry("alpha", 0o664, 4000, 500),
+                    FileEntry("beta", 0o664, 5000, 500),
                 ],
             ),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -127,24 +127,24 @@ def test_pangur_new_subdir():
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 3000, 500, 0o664),
+            FileEntry("foo", 0o664, 3000, 500),
             DirEntry(
                 "baz",
                 mode=0o775,
                 entries=[
-                    FileEntry("alpha", 6000, 500, 0o664),
-                    FileEntry("beta", 5000, 500, 0o664),
+                    FileEntry("alpha", 0o664, 6000, 500),
+                    FileEntry("beta", 0o664, 5000, 50),
                 ],
             ),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     dst_dir = DirEntry(
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 1000, 500, 0o664),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("foo", 0o664, 1000, 500),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -164,12 +164,12 @@ def test_pangur_nested_subdirs():
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 3000, 500, 0o664),
+            FileEntry("foo", 0o664, 3000, 500),
             DirEntry(
                 "baz",
                 mode=0o775,
                 entries=[
-                    FileEntry("alpha", 6000, 500, 0o664),
+                    FileEntry("alpha", 0o664, 6000, 500),
                     DirEntry(
                         "beta",
                         mode=0o775,
@@ -178,25 +178,25 @@ def test_pangur_nested_subdirs():
                                 "gamma",
                                 mode=0o775,
                                 entries=[
-                                    FileEntry("kappa", 6000, 500, 0o664),
-                                    FileEntry("lambda", 6000, 500, 0o664),
+                                    FileEntry("kappa", 0o664, 6000, 500),
+                                    FileEntry("lambda", 0o664, 6000, 500),
                                 ],
                             ),
-                            FileEntry("epsilon", 6000, 500, 0o664),
-                            FileEntry("omega", 6000, 500, 0o664),
+                            FileEntry("epsilon", 0o664, 6000, 500),
+                            FileEntry("omega", 0o664, 6000, 500),
                         ],
                     ),
                 ],
             ),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     dst_dir = DirEntry(
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 1000, 500, 0o664),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("foo", 0o664, 1000, 500),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -219,24 +219,24 @@ def test_pangur_removed_subdir():
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 3000, 500, 0o664),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("foo", 0o664, 3000, 500),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     dst_dir = DirEntry(
         "/",
         mode=0o755,
         entries=[
-            FileEntry("foo", 1000, 500, 0o664),
+            FileEntry("foo", 0o664, 1000, 500),
             DirEntry(
                 "baz",
                 mode=0o775,
                 entries=[
-                    FileEntry("alpha", 6000, 500, 0o664),
-                    FileEntry("beta", 5000, 500, 0o664),
+                    FileEntry("alpha", 0o664, 6000, 500),
+                    FileEntry("beta", 0o664, 5000, 500),
                 ],
             ),
-            FileEntry("bar", 2000, 800, 0o664),
+            FileEntry("bar", 0o664, 2000, 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
