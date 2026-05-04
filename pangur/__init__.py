@@ -1,1 +1,1 @@
-from .pangur import FileEntry
+from .pangur import FileEntry as FileEntry

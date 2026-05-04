@@ -33,7 +33,6 @@ class SymlinkEntry(Entry):
     target: str
 
 
-
 class Operation(Enum):
     NoOp = auto()
     SrcCopy = auto()
@@ -67,7 +66,7 @@ class Policy:
         else:
             return 0
 
-    def compare_names(self, e1: Entry, e2: Entry):
+    def compare_names(self, e1: Entry | None, e2: Entry | None):
         # TODO: case-insensitive, case-preserving, Unicode normalization
         if e1 is None:
             return 1
@@ -85,7 +84,7 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
     key_func = cmp_to_key(policy.compare_names)
     srcs = sorted(srcdir.entries, key=key_func)
     dsts = sorted(dstdir.entries, key=key_func)
-    results: list[tuple[str, Entry, State]] = []
+    results: list[tuple[str, Entry | None, State]] = []
     i = j = 0
 
     while i < len(srcs) or j < len(dsts):

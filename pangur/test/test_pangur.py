@@ -1,5 +1,3 @@
-import pytest
-
 from ..pangur import compare_tree, FileEntry, DirEntry, State, Policy
 
 
