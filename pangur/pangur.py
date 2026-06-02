@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import auto, Enum
+from enum import Enum, auto
 from functools import cmp_to_key
 
 
@@ -66,18 +66,22 @@ class Policy:
         else:
             return 0
 
-    def compare_names(self, e1: Entry | None, e2: Entry | None):
+    def compare_names(self, e1: Entry, e2: Entry):
         # TODO: case-insensitive, case-preserving, Unicode normalization
-        if e1 is None:
-            return 1
-        elif e2 is None:
-            return -1
         if e1.name == e2.name:
             return 0
         elif e1.name < e2.name:
             return -1
         else:
             return +1
+
+
+def compare_entries(policy: Policy, e1: Entry | None, e2: Entry | None):
+    if e1 is None:
+        return 1 if e2 is not None else 0
+    elif e2 is None:
+        return -1
+    return policy.compare_names(e1, e2)
 
 
 def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
@@ -90,7 +94,7 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
     while i < len(srcs) or j < len(dsts):
         src = srcs[i] if i < len(srcs) else None
         dst = dsts[j] if j < len(dsts) else None
-        name_cmp = policy.compare_names(src, dst)
+        name_cmp = compare_entries(policy, src, dst)
 
         if name_cmp < 0:
             if isinstance(src, DirEntry):

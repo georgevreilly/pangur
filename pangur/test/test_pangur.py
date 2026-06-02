@@ -1,9 +1,21 @@
-from ..pangur import compare_tree, FileEntry, DirEntry, State, Policy
+from ..pangur import DirEntry, FileEntry, Policy, State, compare_entries, compare_tree
 
 
 def check_expected(actual, expected):
     results = [(path, e.name, state) for path, e, state in actual]
     assert results == expected
+
+
+def test_compare_entries():
+    policy = Policy()
+    foo = FileEntry("foo", 0o664, 1000, 500)
+    bar = FileEntry("bar", 0o664, 2000, 800)
+    assert 0 == compare_entries(policy, foo, foo)
+    assert 0 == compare_entries(policy, None, None)
+    assert +1 == compare_entries(policy, None, foo)
+    assert -1 == compare_entries(policy, bar, None)
+    assert -1 == compare_entries(policy, bar, foo)
+    assert +1 == compare_entries(policy, foo, bar)
 
 
 def test_pangur_same():
