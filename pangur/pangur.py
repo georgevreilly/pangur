@@ -170,12 +170,12 @@ def walk_tree(root: str) -> DirEntry:
         if e.is_dir():
             entry = walk_tree(e.path)
         elif e.is_symlink():
-            entry = SymlinkEntry(e.path, sr.st_mode, os.readlink(e.path))
+            entry = SymlinkEntry(e.name, sr.st_mode, os.readlink(e.path))
         else:
-            entry = FileEntry(e.path, sr.st_mode, sr.st_ctime, sr.st_size)
+            entry = FileEntry(e.name, sr.st_mode, sr.st_ctime, sr.st_size)
         entries.append(entry)
     sr = os.stat(root)
-    return DirEntry(root, sr.st_mode, entries)
+    return DirEntry(os.path.basename(root), sr.st_mode, entries)
 
 
 if __name__ == "__main__":
