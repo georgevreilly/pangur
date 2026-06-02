@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 from functools import cmp_to_key
@@ -159,3 +161,24 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
             print(f"Huh: {path=}, {src=}, {dst=}")
 
     return results
+
+
+def walk_tree(root: str) -> DirEntry:
+    entries: list[Entry] = []
+    for e in os.scandir(root):
+        sr = e.stat()
+        if e.is_dir():
+            entry = walk_tree(e.path)
+        elif e.is_symlink():
+            entry = SymlinkEntry(e.path, sr.st_mode, os.readlink(e.path))
+        else:
+            entry = FileEntry(e.path, sr.st_mode, sr.st_ctime, sr.st_size)
+        entries.append(entry)
+    sr = os.stat(root)
+    return DirEntry(root, sr.st_mode, entries)
+
+
+if __name__ == "__main__":
+    import pprint
+
+    pprint.pprint(walk_tree(sys.argv[1]))
