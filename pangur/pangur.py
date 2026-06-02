@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import datetime
 import os
 import sys
 from dataclasses import dataclass
@@ -28,11 +29,18 @@ class FileEntry(Entry):
     timestamp: float
     size: int
 
+    def __repr__(self):
+        ts = datetime.datetime.fromtimestamp(self.timestamp)
+        return f"FileEntry('{self.name}', {self.mode:o}, {ts}, {self.size})"
+
 
 @dataclass
 class SymlinkEntry(Entry):
     # Symlink: relative only, within tree
     target: str
+
+    def __repr__(self):
+        return f"SymlinkEntry('{self.name}', {self.mode:o}, -> '{self.target}')"
 
 
 class Operation(Enum):
@@ -172,7 +180,7 @@ def walk_tree(root: str) -> DirEntry:
         elif e.is_symlink():
             entry = SymlinkEntry(e.name, sr.st_mode, os.readlink(e.path))
         else:
-            entry = FileEntry(e.name, sr.st_mode, sr.st_ctime, sr.st_size)
+            entry = FileEntry(e.name, sr.st_mode, sr.st_mtime, sr.st_size)
         entries.append(entry)
     sr = os.stat(root)
     return DirEntry(os.path.basename(root), sr.st_mode, entries)
