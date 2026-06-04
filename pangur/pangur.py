@@ -21,6 +21,17 @@ class FileMode:
 
 
 @dataclass
+class TimeStamp:
+    time: float
+
+    def isotime(self) -> str:
+        ts = datetime.datetime.fromtimestamp(self.time)
+        return ts.strftime("%Y-%m-%dt%H:%M:%S.%f")[:-3]
+
+    __repr__ = isotime
+
+
+@dataclass
 class Entry:
     name: str
     mode: FileMode
@@ -34,12 +45,11 @@ class DirEntry(Entry):
 
 @dataclass
 class FileEntry(Entry):
-    timestamp: float  # mtime
+    mtime: TimeStamp
     size: int  # bytes
 
     def __repr__(self):
-        ts = datetime.datetime.fromtimestamp(self.timestamp)
-        return f"FileEntry('{self.name}', {self.mode}, {ts}, {self.size})"
+        return f"FileEntry('{self.name}', {self.mode}, {self.mtime}, {self.size})"
 
 
 @dataclass
@@ -73,8 +83,8 @@ class State(Enum):
 class Policy:
     modify_window: int = 0
 
-    def compare_times(self, t1: float, t2: float):
-        delta = t2 - t1
+    def compare_times(self, t1: TimeStamp, t2: TimeStamp):
+        delta = t2.time - t1.time
         if self.modify_window and -self.modify_window <= delta < self.modify_window:
             return 0
         if delta > 0:
@@ -121,7 +131,7 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                     compare_tree(
                         path + src.name + "/",
                         src,
-                        DirEntry("", mode=0, entries=[]),
+                        DirEntry("", mode=FileMode(0), entries=[]),
                         policy,
                     )
                 )
@@ -138,7 +148,7 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                 results.extend(
                     compare_tree(
                         path + dst.name + "/",
-                        DirEntry("", mode=0, entries=[]),
+                        DirEntry("", mode=FileMode(0), entries=[]),
                         dst,
                         policy,
                     )
@@ -159,12 +169,12 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
                 # TODO: something
                 pass
             elif isinstance(src, FileEntry) and isinstance(dst, FileEntry):
-                time_diff = policy.compare_times(src.timestamp, dst.timestamp)
-                if time_diff == 0 and src.size == dst.size:
+                time_cmp = policy.compare_times(src.mtime, dst.mtime)
+                if time_cmp == 0 and src.size == dst.size:
                     results.append((path, src, State.Same))
-                elif time_diff < 0:
+                elif time_cmp < 0:
                     results.append((path, src, State.SrcNewer))
-                elif time_diff > 0:
+                elif time_cmp > 0:
                     results.append((path, dst, State.DstNewer))
                 elif src.size != dst.size:
                     results.append((path, src, State.SizeDiffer))
@@ -186,10 +196,12 @@ def walk_tree(root: str) -> DirEntry:
         if e.is_dir():
             entry = walk_tree(e.path)
         elif e.is_symlink():
-            # TODO: capture only within the tree
+            # TODO: capture symlinks only within the tree
             entry = SymlinkEntry(e.name, FileMode(sr.st_mode), os.readlink(e.path))
         else:
-            entry = FileEntry(e.name, FileMode(sr.st_mode), sr.st_mtime, sr.st_size)
+            entry = FileEntry(
+                e.name, FileMode(sr.st_mode), TimeStamp(sr.st_mtime), sr.st_size
+            )
         entries.append(entry)
     sr = os.stat(root, follow_symlinks=False)
     return DirEntry(os.path.basename(root), FileMode(sr.st_mode), entries)
