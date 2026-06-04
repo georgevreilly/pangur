@@ -34,19 +34,19 @@ class TimeStamp:
 
 
 @dataclass
-class Entry:
+class InfoEntry:
     name: str
     mode: FileMode
     # TODO: user, group, xattrs
 
 
 @dataclass
-class DirEntry(Entry):
-    entries: list[Entry]
+class DirInfo(InfoEntry):
+    entries: list[InfoEntry]
 
 
 @dataclass
-class FileEntry(Entry):
+class FileInfo(InfoEntry):
     mtime: TimeStamp
     size: int  # bytes
 
@@ -55,7 +55,7 @@ class FileEntry(Entry):
 
 
 @dataclass
-class SymlinkEntry(Entry):
+class SymlinkInfo(InfoEntry):
     # Symlink: relative only, within tree
     target: str
 
@@ -96,7 +96,7 @@ class Policy:
         else:
             return 0
 
-    def compare_names(self, e1: Entry, e2: Entry):
+    def compare_names(self, e1: InfoEntry, e2: InfoEntry):
         # TODO: case-insensitive, case-preserving, Unicode normalization
         if e1.name == e2.name:
             return 0
@@ -106,7 +106,7 @@ class Policy:
             return +1
 
 
-def compare_entries(policy: Policy, e1: Entry | None, e2: Entry | None):
+def compare_entries(policy: Policy, e1: InfoEntry | None, e2: InfoEntry | None):
     if e1 is None:
         return 1 if e2 is not None else 0
     elif e2 is None:
@@ -114,11 +114,11 @@ def compare_entries(policy: Policy, e1: Entry | None, e2: Entry | None):
     return policy.compare_names(e1, e2)
 
 
-def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
+def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy):
     key_func = cmp_to_key(policy.compare_names)
     srcs = sorted(srcdir.entries, key=key_func)
     dsts = sorted(dstdir.entries, key=key_func)
-    results: list[tuple[str, Entry | None, State]] = []
+    results: list[tuple[str, InfoEntry | None, State]] = []
     i = j = 0
 
     while i < len(srcs) or j < len(dsts):
@@ -127,50 +127,50 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
         name_cmp = compare_entries(policy, src, dst)
 
         if name_cmp < 0:
-            if isinstance(src, DirEntry):
+            if isinstance(src, DirInfo):
                 # TODO: Pre
                 results.extend(
                     compare_tree(
                         path + src.name + "/",
                         src,
-                        DirEntry("", mode=FileMode(0), entries=[]),
+                        DirInfo("", mode=FileMode(0), entries=[]),
                         policy,
                     )
                 )
                 # TODO: Post
-            elif isinstance(src, SymlinkEntry):
+            elif isinstance(src, SymlinkInfo):
                 # TODO: validate that symlink is relative and within src
                 pass
             else:
                 results.append((path, src, State.SrcOnly))
             i += 1
         elif name_cmp > 0:
-            if isinstance(dst, DirEntry):
+            if isinstance(dst, DirInfo):
                 # TODO: Pre
                 results.extend(
                     compare_tree(
                         path + dst.name + "/",
-                        DirEntry("", mode=FileMode(0), entries=[]),
+                        DirInfo("", mode=FileMode(0), entries=[]),
                         dst,
                         policy,
                     )
                 )
                 # TODO: Post
-            elif isinstance(dst, SymlinkEntry):
+            elif isinstance(dst, SymlinkInfo):
                 # TODO: validate
                 pass
             else:
                 results.append((path, dst, State.DstOnly))
             j += 1
         elif name_cmp == 0:
-            if isinstance(src, DirEntry) and isinstance(dst, DirEntry):
+            if isinstance(src, DirInfo) and isinstance(dst, DirInfo):
                 # TODO: Pre
                 results.extend(compare_tree(path + src.name + "/", src, dst, policy))
                 # TODO: Post
-            elif isinstance(src, SymlinkEntry) and isinstance(dst, SymlinkEntry):
+            elif isinstance(src, SymlinkInfo) and isinstance(dst, SymlinkInfo):
                 # TODO: something
                 pass
-            elif isinstance(src, FileEntry) and isinstance(dst, FileEntry):
+            elif isinstance(src, FileInfo) and isinstance(dst, FileInfo):
                 time_cmp = policy.compare_times(src.mtime, dst.mtime)
                 if time_cmp == 0 and src.size == dst.size:
                     results.append((path, src, State.Same))
@@ -191,20 +191,20 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
     return results
 
 
-def walk_tree(root: str) -> DirEntry:
-    entries: list[Entry] = []
+def walk_tree(root: str) -> DirInfo:
+    entries: list[InfoEntry] = []
     for e in os.scandir(root):
         sr = e.stat(follow_symlinks=False)
         if e.is_dir():
             entry = walk_tree(e.path)
         elif e.is_symlink():
             # TODO: capture symlinks only within the tree
-            entry = SymlinkEntry(e.name, FileMode(sr.st_mode), os.readlink(e.path))
+            entry = SymlinkInfo(e.name, FileMode(sr.st_mode), os.readlink(e.path))
         else:
-            entry = FileEntry(e.name, FileMode(sr.st_mode), TimeStamp(sr.st_mtime), sr.st_size)
+            entry = FileInfo(e.name, FileMode(sr.st_mode), TimeStamp(sr.st_mtime), sr.st_size)
         entries.append(entry)
     sr = os.stat(root, follow_symlinks=False)
-    return DirEntry(os.path.basename(root), FileMode(sr.st_mode), entries)
+    return DirInfo(os.path.basename(root), FileMode(sr.st_mode), entries)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import pangur
 def main():
     print("Hello from pangur!")
     print(dir(pangur))
-    e = pangur.pangur.FileEntry("foo", timestamp=7, mode=0o744, size=123)
+    e = pangur.pangur.FileInfo("foo", mode=pangur.pangur.FileMode(0o644), mtime=pangur.pangur.TimeStamp(7), size=123)
     print(e)
 
 

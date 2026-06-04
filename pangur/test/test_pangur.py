@@ -1,6 +1,6 @@
 from ..pangur import (
-    DirEntry,
-    FileEntry,
+    DirInfo,
+    FileInfo,
     FileMode,
     Policy,
     State,
@@ -20,8 +20,8 @@ def check_expected(actual, expected):
 
 def test_compare_entries():
     policy = Policy()
-    foo = FileEntry("foo", FileMode_File, TimeStamp(1000), 500)
-    bar = FileEntry("bar", FileMode_File, TimeStamp(2000), 800)
+    foo = FileInfo("foo", FileMode_File, TimeStamp(1000), 500)
+    bar = FileInfo("bar", FileMode_File, TimeStamp(2000), 800)
     assert 0 == compare_entries(policy, foo, foo)
     assert 0 == compare_entries(policy, None, None)
     assert +1 == compare_entries(policy, None, foo)
@@ -31,12 +31,12 @@ def test_compare_entries():
 
 
 def test_pangur_same():
-    src_dir = DirEntry(
+    src_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(1000), 500),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
     actual = compare_tree("/", src_dir, src_dir, Policy())
@@ -44,20 +44,20 @@ def test_pangur_same():
 
 
 def test_pangur_newer():
-    src_dir = DirEntry(
+    src_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(3000), 500),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    dst_dir = DirEntry(
+    dst_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(1000), 500),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -65,24 +65,24 @@ def test_pangur_newer():
 
 
 def test_pangur_newer_more():
-    src_dir = DirEntry(
+    src_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(3000), 500),
-            FileEntry("baz", FileMode_File, TimeStamp(5000), 800),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
-            FileEntry("miz", FileMode_File, TimeStamp(6000), 800),
-            FileEntry("wiz", FileMode_File, TimeStamp(6000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
+            FileInfo("baz", FileMode_File, TimeStamp(5000), 800),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("miz", FileMode_File, TimeStamp(6000), 800),
+            FileInfo("wiz", FileMode_File, TimeStamp(6000), 800),
         ],
     )
-    dst_dir = DirEntry(
+    dst_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(1000), 500),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
-            FileEntry("quux", FileMode_File, TimeStamp(4000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("quux", FileMode_File, TimeStamp(4000), 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -100,36 +100,36 @@ def test_pangur_newer_more():
 
 
 def test_pangur_updated_subdir():
-    src_dir = DirEntry(
+    src_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(3000), 500),
-            DirEntry(
+            FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
+            DirInfo(
                 "baz",
                 mode=FileMode(0o775),
                 entries=[
-                    FileEntry("alpha", FileMode_File, TimeStamp(6000), 500),
-                    FileEntry("beta", FileMode_File, TimeStamp(5000), 500),
+                    FileInfo("alpha", FileMode_File, TimeStamp(6000), 500),
+                    FileInfo("beta", FileMode_File, TimeStamp(5000), 500),
                 ],
             ),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    dst_dir = DirEntry(
+    dst_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(1000), 500),
-            DirEntry(
+            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
+            DirInfo(
                 "baz",
                 mode=FileMode(0o775),
                 entries=[
-                    FileEntry("alpha", FileMode_File, TimeStamp(4000), 500),
-                    FileEntry("beta", FileMode_File, TimeStamp(5000), 500),
+                    FileInfo("alpha", FileMode_File, TimeStamp(4000), 500),
+                    FileInfo("beta", FileMode_File, TimeStamp(5000), 500),
                 ],
             ),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -145,28 +145,28 @@ def test_pangur_updated_subdir():
 
 
 def test_pangur_new_subdir():
-    src_dir = DirEntry(
+    src_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(3000), 500),
-            DirEntry(
+            FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
+            DirInfo(
                 "baz",
                 mode=FileMode(0o775),
                 entries=[
-                    FileEntry("alpha", FileMode_File, TimeStamp(6000), 500),
-                    FileEntry("beta", FileMode_File, TimeStamp(5000), 50),
+                    FileInfo("alpha", FileMode_File, TimeStamp(6000), 500),
+                    FileInfo("beta", FileMode_File, TimeStamp(5000), 50),
                 ],
             ),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    dst_dir = DirEntry(
+    dst_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(1000), 500),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -182,43 +182,43 @@ def test_pangur_new_subdir():
 
 
 def test_pangur_nested_subdirs():
-    src_dir = DirEntry(
+    src_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(3000), 500),
-            DirEntry(
+            FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
+            DirInfo(
                 "baz",
                 mode=FileMode(0o775),
                 entries=[
-                    FileEntry("alpha", FileMode_File, TimeStamp(6000), 500),
-                    DirEntry(
+                    FileInfo("alpha", FileMode_File, TimeStamp(6000), 500),
+                    DirInfo(
                         "beta",
                         mode=FileMode(0o775),
                         entries=[
-                            DirEntry(
+                            DirInfo(
                                 "gamma",
                                 mode=FileMode(0o775),
                                 entries=[
-                                    FileEntry("kappa", FileMode_File, TimeStamp(6000), 500),
-                                    FileEntry("lambda", FileMode_File, TimeStamp(6000), 500),
+                                    FileInfo("kappa", FileMode_File, TimeStamp(6000), 500),
+                                    FileInfo("lambda", FileMode_File, TimeStamp(6000), 500),
                                 ],
                             ),
-                            FileEntry("epsilon", FileMode_File, TimeStamp(6000), 500),
-                            FileEntry("omega", FileMode_File, TimeStamp(6000), 500),
+                            FileInfo("epsilon", FileMode_File, TimeStamp(6000), 500),
+                            FileInfo("omega", FileMode_File, TimeStamp(6000), 500),
                         ],
                     ),
                 ],
             ),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    dst_dir = DirEntry(
+    dst_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(1000), 500),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
@@ -237,28 +237,28 @@ def test_pangur_nested_subdirs():
 
 
 def test_pangur_removed_subdir():
-    src_dir = DirEntry(
+    src_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(3000), 500),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    dst_dir = DirEntry(
+    dst_dir = DirInfo(
         "/",
         mode=FileMode_Dir,
         entries=[
-            FileEntry("foo", FileMode_File, TimeStamp(1000), 500),
-            DirEntry(
+            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
+            DirInfo(
                 "baz",
                 mode=FileMode(0o775),
                 entries=[
-                    FileEntry("alpha", FileMode_File, TimeStamp(6000), 500),
-                    FileEntry("beta", FileMode_File, TimeStamp(5000), 500),
+                    FileInfo("alpha", FileMode_File, TimeStamp(6000), 500),
+                    FileInfo("beta", FileMode_File, TimeStamp(5000), 500),
                 ],
             ),
-            FileEntry("bar", FileMode_File, TimeStamp(2000), 800),
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
