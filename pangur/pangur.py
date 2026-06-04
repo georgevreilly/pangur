@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import datetime
 import os
+import stat
 import sys
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -17,7 +18,8 @@ class FileMode:
     mode: int
 
     def __repr__(self) -> str:
-        return f"{self.mode:o}"
+        # return f"{self.mode:o}"
+        return stat.filemode(self.mode)
 
 
 @dataclass
@@ -58,7 +60,7 @@ class SymlinkEntry(Entry):
     target: str
 
     def __repr__(self):
-        return f"SymlinkEntry('{self.name}', {self.mode:o}, -> '{self.target}')"
+        return f"SymlinkEntry('{self.name}' -> '{self.target}, {self.mode}')"
 
 
 class Operation(Enum):
