@@ -13,9 +13,17 @@ from functools import cmp_to_key
 
 
 @dataclass
+class FileMode:
+    mode: int
+
+    def __str__(self) -> str:
+        return f"{self.mode:o}"
+
+
+@dataclass
 class Entry:
     name: str
-    mode: int
+    mode: FileMode
     # TODO: user, group, xattrs
 
 
@@ -26,12 +34,12 @@ class DirEntry(Entry):
 
 @dataclass
 class FileEntry(Entry):
-    timestamp: float
-    size: int
+    timestamp: float  # mtime
+    size: int  # bytes
 
     def __repr__(self):
         ts = datetime.datetime.fromtimestamp(self.timestamp)
-        return f"FileEntry('{self.name}', {self.mode:o}, {ts}, {self.size})"
+        return f"FileEntry('{self.name}', {self.mode}, {ts}, {self.size})"
 
 
 @dataclass
@@ -174,16 +182,17 @@ def compare_tree(path: str, srcdir: DirEntry, dstdir: DirEntry, policy: Policy):
 def walk_tree(root: str) -> DirEntry:
     entries: list[Entry] = []
     for e in os.scandir(root):
-        sr = e.stat()
+        sr = e.stat(follow_symlinks=False)
         if e.is_dir():
             entry = walk_tree(e.path)
         elif e.is_symlink():
-            entry = SymlinkEntry(e.name, sr.st_mode, os.readlink(e.path))
+            # TODO: capture only within the tree
+            entry = SymlinkEntry(e.name, FileMode(sr.st_mode), os.readlink(e.path))
         else:
-            entry = FileEntry(e.name, sr.st_mode, sr.st_mtime, sr.st_size)
+            entry = FileEntry(e.name, FileMode(sr.st_mode), sr.st_mtime, sr.st_size)
         entries.append(entry)
-    sr = os.stat(root)
-    return DirEntry(os.path.basename(root), sr.st_mode, entries)
+    sr = os.stat(root, follow_symlinks=False)
+    return DirEntry(os.path.basename(root), FileMode(sr.st_mode), entries)
 
 
 if __name__ == "__main__":
