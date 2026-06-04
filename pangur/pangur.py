@@ -16,7 +16,7 @@ from functools import cmp_to_key
 class FileMode:
     mode: int
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"{self.mode:o}"
 
 
