@@ -200,12 +200,8 @@ def test_pangur_nested_subdirs():
                                 "gamma",
                                 mode=FileMode(0o775),
                                 entries=[
-                                    FileEntry(
-                                        "kappa", FileMode_File, TimeStamp(6000), 500
-                                    ),
-                                    FileEntry(
-                                        "lambda", FileMode_File, TimeStamp(6000), 500
-                                    ),
+                                    FileEntry("kappa", FileMode_File, TimeStamp(6000), 500),
+                                    FileEntry("lambda", FileMode_File, TimeStamp(6000), 500),
                                 ],
                             ),
                             FileEntry("epsilon", FileMode_File, TimeStamp(6000), 500),

@@ -199,9 +199,7 @@ def walk_tree(root: str) -> DirEntry:
             # TODO: capture symlinks only within the tree
             entry = SymlinkEntry(e.name, FileMode(sr.st_mode), os.readlink(e.path))
         else:
-            entry = FileEntry(
-                e.name, FileMode(sr.st_mode), TimeStamp(sr.st_mtime), sr.st_size
-            )
+            entry = FileEntry(e.name, FileMode(sr.st_mode), TimeStamp(sr.st_mtime), sr.st_size)
         entries.append(entry)
     sr = os.stat(root, follow_symlinks=False)
     return DirEntry(os.path.basename(root), FileMode(sr.st_mode), entries)
