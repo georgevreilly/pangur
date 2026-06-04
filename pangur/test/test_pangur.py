@@ -107,7 +107,7 @@ def test_pangur_updated_subdir():
             FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
             DirInfo(
                 "baz",
-                mode=FileMode(0o775),
+                mode=FileMode_Dir,
                 entries=[
                     FileInfo("alpha", FileMode_File, TimeStamp(6000), 500),
                     FileInfo("beta", FileMode_File, TimeStamp(5000), 500),
@@ -123,7 +123,7 @@ def test_pangur_updated_subdir():
             FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
             DirInfo(
                 "baz",
-                mode=FileMode(0o775),
+                mode=FileMode_Dir,
                 entries=[
                     FileInfo("alpha", FileMode_File, TimeStamp(4000), 500),
                     FileInfo("beta", FileMode_File, TimeStamp(5000), 500),
@@ -152,7 +152,7 @@ def test_pangur_new_subdir():
             FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
             DirInfo(
                 "baz",
-                mode=FileMode(0o775),
+                mode=FileMode_Dir,
                 entries=[
                     FileInfo("alpha", FileMode_File, TimeStamp(6000), 500),
                     FileInfo("beta", FileMode_File, TimeStamp(5000), 50),
@@ -189,16 +189,16 @@ def test_pangur_nested_subdirs():
             FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
             DirInfo(
                 "baz",
-                mode=FileMode(0o775),
+                mode=FileMode_Dir,
                 entries=[
                     FileInfo("alpha", FileMode_File, TimeStamp(6000), 500),
                     DirInfo(
                         "beta",
-                        mode=FileMode(0o775),
+                        mode=FileMode_Dir,
                         entries=[
                             DirInfo(
                                 "gamma",
-                                mode=FileMode(0o775),
+                                mode=FileMode_Dir,
                                 entries=[
                                     FileInfo("kappa", FileMode_File, TimeStamp(6000), 500),
                                     FileInfo("lambda", FileMode_File, TimeStamp(6000), 500),
@@ -252,7 +252,7 @@ def test_pangur_removed_subdir():
             FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
             DirInfo(
                 "baz",
-                mode=FileMode(0o775),
+                mode=FileMode_Dir,
                 entries=[
                     FileInfo("alpha", FileMode_File, TimeStamp(6000), 500),
                     FileInfo("beta", FileMode_File, TimeStamp(5000), 500),
