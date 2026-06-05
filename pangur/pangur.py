@@ -90,7 +90,7 @@ class Policy:
         if self.modify_window and -self.modify_window <= delta < self.modify_window:
             return 0
         if delta > 0:
-            return 1
+            return +1
         elif delta < 0:
             return -1
         else:
@@ -108,7 +108,7 @@ class Policy:
 
 def compare_entries(policy: Policy, e1: InfoEntry | None, e2: InfoEntry | None):
     if e1 is None:
-        return 1 if e2 is not None else 0
+        return +1 if e2 is not None else 0
     elif e2 is None:
         return -1
     return policy.compare_names(e1, e2)
@@ -192,6 +192,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy):
 
 
 def walk_tree(root: str) -> DirInfo:
+    # TODO: mechanism for filtering and sorting
     entries: list[InfoEntry] = []
     for e in os.scandir(root):
         sr = e.stat(follow_symlinks=False)
