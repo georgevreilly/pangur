@@ -86,13 +86,13 @@ class Policy:
     modify_window: int = 0
 
     def compare_times(self, t1: TimeStamp, t2: TimeStamp):
-        delta = t2.time - t1.time
-        if self.modify_window and -self.modify_window <= delta < self.modify_window:
+        delta = t1.time - t2.time
+        if self.modify_window > 0 and -self.modify_window <= delta < self.modify_window:
             return 0
-        if delta > 0:
-            return +1
-        elif delta < 0:
+        if delta < 0:
             return -1
+        elif delta > 0:
+            return +1
         else:
             return 0
 
@@ -174,9 +174,9 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy):
                 time_cmp = policy.compare_times(src.mtime, dst.mtime)
                 if time_cmp == 0 and src.size == dst.size:
                     results.append((path, src, State.Same))
-                elif time_cmp < 0:
-                    results.append((path, src, State.SrcNewer))
                 elif time_cmp > 0:
+                    results.append((path, src, State.SrcNewer))
+                elif time_cmp < 0:
                     results.append((path, dst, State.DstNewer))
                 elif src.size != dst.size:
                     results.append((path, src, State.SizeDiffer))

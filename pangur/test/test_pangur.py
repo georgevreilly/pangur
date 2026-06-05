@@ -30,6 +30,23 @@ def test_compare_entries():
     assert +1 == compare_entries(policy, foo, bar)
 
 
+def test_modify_window():
+    policy0 = Policy(modify_window=0)
+    t0 = TimeStamp(1000)
+    t1 = TimeStamp(1500)
+    t2 = TimeStamp(2100)
+    assert 0 == policy0.compare_times(t0, t0)
+    assert -1 == policy0.compare_times(t0, t1)
+    assert +1 == policy0.compare_times(t1, t0)
+
+    policy1 = Policy(modify_window=1000)
+    assert 0 == policy1.compare_times(t0, t0)
+    assert 0 == policy1.compare_times(t0, t1)
+    assert 0 == policy1.compare_times(t1, t0)
+    assert -1 == policy0.compare_times(t0, t2)
+    assert +1 == policy0.compare_times(t2, t0)
+
+
 def test_pangur_same():
     src_dir = DirInfo(
         "/",
