@@ -63,24 +63,6 @@ class SymlinkInfo(InfoEntry):
         return f"SymlinkEntry('{self.name}' -> '{self.target}, {self.mode}')"
 
 
-class Operation(Enum):
-    NoOp = auto()
-    SrcCopy = auto()
-    DstCopy = auto()
-    SrcDelete = auto()
-    DstDelete = auto()
-
-
-class State(Enum):
-    Same = auto()
-    SrcNewer = auto()
-    DstNewer = auto()
-    SrcOnly = auto()
-    DstOnly = auto()
-    SizeDiffer = auto()
-    Weird = auto()
-
-
 @dataclass
 class Policy:
     modify_window: int = 0
@@ -114,10 +96,20 @@ def compare_entries(policy: Policy, e1: InfoEntry | None, e2: InfoEntry | None):
     return policy.compare_names(e1, e2)
 
 
+class State(Enum):
+    Same = auto()
+    SrcNewer = auto()
+    DstNewer = auto()
+    SrcOnly = auto()
+    DstOnly = auto()
+    SizeDiffer = auto()
+    Weird = auto()
+
+
 @dataclass
 class PathState:
     path: str
-    entry: InfoEntry | None
+    entry: InfoEntry
     state: State
 
 
@@ -134,6 +126,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
         name_cmp = compare_entries(policy, src, dst)
 
         if name_cmp < 0:
+            assert src is not None
             if isinstance(src, DirInfo):
                 # TODO: Pre
                 path_states.extend(
@@ -152,6 +145,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                 path_states.append(PathState(path, src, State.SrcOnly))
             i += 1
         elif name_cmp > 0:
+            assert dst is not None
             if isinstance(dst, DirInfo):
                 # TODO: Pre
                 path_states.extend(
@@ -198,6 +192,14 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
     return path_states
 
 
+class Operation(Enum):
+    NoOp = auto()
+    SrcCopy = auto()
+    DstCopy = auto()
+    SrcDelete = auto()
+    DstDelete = auto()
+
+
 @dataclass
 class PathOperation:
     path: str
@@ -205,8 +207,17 @@ class PathOperation:
     operation: Operation
 
 
-def compute_operations(path_states: list[PathState]) -> list[tuple[InfoEntry, Operation]]:
-    return []
+def compute_operations(path_states: list[PathState]) -> list[PathOperation]:
+    path_ops: list[PathOperation] = []
+    for ps in path_states:
+        op = Operation.NoOp
+        if ps.state in (State.SrcOnly, State.SrcNewer, State.SizeDiffer):
+            op = Operation.SrcCopy
+        elif ps.state in (State.DstOnly, State.DstNewer):
+            op = Operation.DstDelete
+        if op != Operation.NoOp:
+            path_ops.append(PathOperation(ps.path, ps.entry, op))
+    return path_ops
 
 
 def walk_tree(root: str) -> DirInfo:
