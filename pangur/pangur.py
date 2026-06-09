@@ -114,11 +114,18 @@ def compare_entries(policy: Policy, e1: InfoEntry | None, e2: InfoEntry | None):
     return policy.compare_names(e1, e2)
 
 
-def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy):
+@dataclass
+class PathState:
+    path: str
+    entry: InfoEntry | None
+    state: State
+
+
+def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) -> list[PathState]:
     key_func = cmp_to_key(policy.compare_names)
     srcs = sorted(srcdir.entries, key=key_func)
     dsts = sorted(dstdir.entries, key=key_func)
-    results: list[tuple[str, InfoEntry | None, State]] = []
+    path_states: list[PathState] = []
     i = j = 0
 
     while i < len(srcs) or j < len(dsts):
@@ -129,7 +136,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy):
         if name_cmp < 0:
             if isinstance(src, DirInfo):
                 # TODO: Pre
-                results.extend(
+                path_states.extend(
                     compare_tree(
                         path + src.name + "/",
                         src,
@@ -142,12 +149,12 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy):
                 # TODO: validate that symlink is relative and within src
                 pass
             else:
-                results.append((path, src, State.SrcOnly))
+                path_states.append(PathState(path, src, State.SrcOnly))
             i += 1
         elif name_cmp > 0:
             if isinstance(dst, DirInfo):
                 # TODO: Pre
-                results.extend(
+                path_states.extend(
                     compare_tree(
                         path + dst.name + "/",
                         DirInfo("", mode=FileMode(0), entries=[]),
@@ -160,12 +167,12 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy):
                 # TODO: validate
                 pass
             else:
-                results.append((path, dst, State.DstOnly))
+                path_states.append(PathState(path, dst, State.DstOnly))
             j += 1
         elif name_cmp == 0:
             if isinstance(src, DirInfo) and isinstance(dst, DirInfo):
                 # TODO: Pre
-                results.extend(compare_tree(path + src.name + "/", src, dst, policy))
+                path_states.extend(compare_tree(path + src.name + "/", src, dst, policy))
                 # TODO: Post
             elif isinstance(src, SymlinkInfo) and isinstance(dst, SymlinkInfo):
                 # TODO: something
@@ -173,22 +180,33 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy):
             elif isinstance(src, FileInfo) and isinstance(dst, FileInfo):
                 time_cmp = policy.compare_times(src.mtime, dst.mtime)
                 if time_cmp == 0 and src.size == dst.size:
-                    results.append((path, src, State.Same))
+                    path_states.append(PathState(path, src, State.Same))
                 elif time_cmp > 0:
-                    results.append((path, src, State.SrcNewer))
+                    path_states.append(PathState(path, src, State.SrcNewer))
                 elif time_cmp < 0:
-                    results.append((path, dst, State.DstNewer))
+                    path_states.append(PathState(path, dst, State.DstNewer))
                 elif src.size != dst.size:
-                    results.append((path, src, State.SizeDiffer))
+                    path_states.append(PathState(path, src, State.SizeDiffer))
                 else:
-                    results.append((path, src, State.Weird))
+                    path_states.append(PathState(path, src, State.Weird))
                 # TODO: modes, user, group, etc
             i += 1
             j += 1
         else:
             print(f"Huh: {path=}, {src=}, {dst=}")
 
-    return results
+    return path_states
+
+
+@dataclass
+class PathOperation:
+    path: str
+    entry: InfoEntry
+    operation: Operation
+
+
+def compute_operations(path_states: list[PathState]) -> list[tuple[InfoEntry, Operation]]:
+    return []
 
 
 def walk_tree(root: str) -> DirInfo:

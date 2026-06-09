@@ -14,7 +14,7 @@ FileMode_Dir = FileMode(0o755)
 
 
 def check_expected(actual, expected):
-    results = [(path, e.name, state) for path, e, state in actual]
+    results = [(a.path, a.entry.name, a.state) for a in actual]
     assert results == expected
 
 
