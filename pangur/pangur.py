@@ -164,6 +164,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                 path_states.append(PathState(path, dst, State.DstOnly))
             j += 1
         elif name_cmp == 0:
+            # Identical names in src and dst
             if isinstance(src, DirInfo) and isinstance(dst, DirInfo):
                 # TODO: Pre
                 path_states.extend(compare_tree(path + src.name + "/", src, dst, policy))
@@ -172,18 +173,21 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                 # TODO: something
                 pass
             elif isinstance(src, FileInfo) and isinstance(dst, FileInfo):
+                # TODO: modes, user, group, etc
                 time_cmp = policy.compare_times(src.mtime, dst.mtime)
-                if time_cmp == 0 and src.size == dst.size:
-                    path_states.append(PathState(path, src, State.Same))
+                if time_cmp == 0:
+                    if src.size == dst.size:
+                        # Considered identical
+                        # TODO: hash contents for true equality
+                        path_states.append(PathState(path, src, State.Same))
+                    else:
+                        path_states.append(PathState(path, src, State.SizeDiffer))
                 elif time_cmp > 0:
                     path_states.append(PathState(path, src, State.SrcNewer))
                 elif time_cmp < 0:
                     path_states.append(PathState(path, dst, State.DstNewer))
-                elif src.size != dst.size:
-                    path_states.append(PathState(path, src, State.SizeDiffer))
-                else:
-                    path_states.append(PathState(path, src, State.Weird))
-                # TODO: modes, user, group, etc
+            else:
+                path_states.append(PathState(path, src, State.Weird))
             i += 1
             j += 1
         else:
@@ -209,6 +213,7 @@ class PathOperation:
 
 def compute_operations(path_states: list[PathState]) -> list[PathOperation]:
     path_ops: list[PathOperation] = []
+    # What about directories
     for ps in path_states:
         op = Operation.NoOp
         if ps.state in (State.SrcOnly, State.SrcNewer, State.SizeDiffer):
