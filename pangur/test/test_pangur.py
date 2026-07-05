@@ -154,8 +154,10 @@ def test_pangur_updated_subdir():
         actual,
         [
             ("/", "bar", State.Same),
+            ("/", "baz", State.DirEnter),
             ("/baz/", "alpha", State.SrcNewer),
             ("/baz/", "beta", State.Same),
+            ("/", "baz", State.DirLeave),
             ("/", "foo", State.SrcNewer),
         ],
     )
@@ -191,8 +193,10 @@ def test_pangur_new_subdir():
         actual,
         [
             ("/", "bar", State.Same),
+            ("/", "baz", State.DirEnter),
             ("/baz/", "alpha", State.SrcOnly),
             ("/baz/", "beta", State.SrcOnly),
+            ("/", "baz", State.DirLeave),
             ("/", "foo", State.SrcNewer),
         ],
     )
@@ -243,11 +247,17 @@ def test_pangur_nested_subdirs():
         actual,
         [
             ("/", "bar", State.Same),
+            ("/", "baz", State.DirEnter),
             ("/baz/", "alpha", State.SrcOnly),
+            ("/baz/", "beta", State.DirEnter),
             ("/baz/beta/", "epsilon", State.SrcOnly),
+            ("/baz/beta/", "gamma", State.DirEnter),
             ("/baz/beta/gamma/", "kappa", State.SrcOnly),
             ("/baz/beta/gamma/", "lambda", State.SrcOnly),
+            ("/baz/beta/", "gamma", State.DirLeave),
             ("/baz/beta/", "omega", State.SrcOnly),
+            ("/baz/", "beta", State.DirLeave),
+            ("/", "baz", State.DirLeave),
             ("/", "foo", State.SrcNewer),
         ],
     )
@@ -283,8 +293,10 @@ def test_pangur_removed_subdir():
         actual,
         [
             ("/", "bar", State.Same),
+            ("/", "baz", State.DirEnter),
             ("/baz/", "alpha", State.DstOnly),
             ("/baz/", "beta", State.DstOnly),
+            ("/", "baz", State.DirLeave),
             ("/", "foo", State.SrcNewer),
         ],
     )

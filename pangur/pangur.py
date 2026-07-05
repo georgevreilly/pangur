@@ -104,6 +104,8 @@ class State(Enum):
     DstOnly = auto()
     SizeDiffer = auto()
     Weird = auto()
+    DirEnter = auto()
+    DirLeave = auto()
 
 
 @dataclass
@@ -128,7 +130,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
         if name_cmp < 0:
             assert src is not None
             if isinstance(src, DirInfo):
-                # TODO: Pre
+                path_states.append(PathState(path, src, State.DirEnter))
                 path_states.extend(
                     compare_tree(
                         path + src.name + "/",
@@ -137,7 +139,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                         policy,
                     )
                 )
-                # TODO: Post
+                path_states.append(PathState(path, src, State.DirLeave))
             elif isinstance(src, SymlinkInfo):
                 # TODO: validate that symlink is relative and within src
                 pass
@@ -147,7 +149,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
         elif name_cmp > 0:
             assert dst is not None
             if isinstance(dst, DirInfo):
-                # TODO: Pre
+                path_states.append(PathState(path, dst, State.DirEnter))
                 path_states.extend(
                     compare_tree(
                         path + dst.name + "/",
@@ -156,7 +158,7 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                         policy,
                     )
                 )
-                # TODO: Post
+                path_states.append(PathState(path, dst, State.DirLeave))
             elif isinstance(dst, SymlinkInfo):
                 # TODO: validate
                 pass
@@ -166,9 +168,9 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
         elif name_cmp == 0:
             # Identical names in src and dst
             if isinstance(src, DirInfo) and isinstance(dst, DirInfo):
-                # TODO: Pre
+                path_states.append(PathState(path, src, State.DirEnter))
                 path_states.extend(compare_tree(path + src.name + "/", src, dst, policy))
-                # TODO: Post
+                path_states.append(PathState(path, src, State.DirLeave))
             elif isinstance(src, SymlinkInfo) and isinstance(dst, SymlinkInfo):
                 # TODO: something
                 pass
@@ -184,9 +186,10 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                         path_states.append(PathState(path, src, State.SizeDiffer))
                 elif time_cmp > 0:
                     path_states.append(PathState(path, src, State.SrcNewer))
-                elif time_cmp < 0:
+                else:
                     path_states.append(PathState(path, dst, State.DstNewer))
             else:
+                assert src is not None
                 path_states.append(PathState(path, src, State.Weird))
             i += 1
             j += 1
@@ -213,13 +216,14 @@ class PathOperation:
 
 def compute_operations(path_states: list[PathState]) -> list[PathOperation]:
     path_ops: list[PathOperation] = []
-    # What about directories
     for ps in path_states:
         op = Operation.NoOp
         if ps.state in (State.SrcOnly, State.SrcNewer, State.SizeDiffer):
             op = Operation.SrcCopy
         elif ps.state in (State.DstOnly, State.DstNewer):
             op = Operation.DstDelete
+        elif ps.state in (State.DirEnter, State.DirLeave):
+            op = Operation.NoOp
         if op != Operation.NoOp:
             path_ops.append(PathOperation(ps.path, ps.entry, op))
     return path_ops
