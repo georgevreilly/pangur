@@ -63,6 +63,25 @@ class SymlinkInfo(InfoEntry):
         return f"SymlinkEntry('{self.name}' -> '{self.target}, {self.mode}')"
 
 
+class State(Enum):
+    Same = auto()
+    SrcNewer = auto()
+    DstNewer = auto()
+    SrcOnly = auto()
+    DstOnly = auto()
+    SizeDiffer = auto()
+    Weird = auto()
+    DirEnter = auto()
+    DirLeave = auto()
+
+
+@dataclass
+class PathState:
+    path: str
+    entry: InfoEntry
+    state: State
+
+
 @dataclass
 class Policy:
     modify_window: int = 0
@@ -94,25 +113,6 @@ def compare_entries(policy: Policy, e1: InfoEntry | None, e2: InfoEntry | None):
     elif e2 is None:
         return -1
     return policy.compare_names(e1, e2)
-
-
-class State(Enum):
-    Same = auto()
-    SrcNewer = auto()
-    DstNewer = auto()
-    SrcOnly = auto()
-    DstOnly = auto()
-    SizeDiffer = auto()
-    Weird = auto()
-    DirEnter = auto()
-    DirLeave = auto()
-
-
-@dataclass
-class PathState:
-    path: str
-    entry: InfoEntry
-    state: State
 
 
 def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) -> list[PathState]:
@@ -223,6 +223,7 @@ def compute_operations(path_states: list[PathState]) -> list[PathOperation]:
         elif ps.state in (State.DstOnly, State.DstNewer):
             op = Operation.DstDelete
         elif ps.state in (State.DirEnter, State.DirLeave):
+            # TODO
             op = Operation.NoOp
         if op != Operation.NoOp:
             path_ops.append(PathOperation(ps.path, ps.entry, op))

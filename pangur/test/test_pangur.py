@@ -2,19 +2,29 @@ from ..pangur import (
     DirInfo,
     FileInfo,
     FileMode,
+    InfoEntry,
+    Operation,
+    PathOperation,
+    PathState,
     Policy,
     State,
     TimeStamp,
     compare_entries,
     compare_tree,
+    compute_operations,
 )
 
 FileMode_File = FileMode(0o644)
 FileMode_Dir = FileMode(0o755)
 
 
-def check_expected(actual, expected):
+def check_expected_path_states(actual: list[PathState], expected):
     results = [(a.path, a.entry.name, a.state) for a in actual]
+    assert results == expected
+
+
+def check_expected_path_operations(actual: list[PathOperation], expected):
+    results = [(a.path, a.entry.name, a.operation) for a in actual]
     assert results == expected
 
 
@@ -57,7 +67,7 @@ def test_pangur_same():
         ],
     )
     actual = compare_tree("/", src_dir, src_dir, Policy())
-    check_expected(actual, [("/", "bar", State.Same), ("/", "foo", State.Same)])
+    check_expected_path_states(actual, [("/", "bar", State.Same), ("/", "foo", State.Same)])
 
 
 def test_pangur_newer():
@@ -78,7 +88,7 @@ def test_pangur_newer():
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
-    check_expected(actual, [("/", "bar", State.Same), ("/", "foo", State.SrcNewer)])
+    check_expected_path_states(actual, [("/", "bar", State.Same), ("/", "foo", State.SrcNewer)])
 
 
 def test_pangur_newer_more():
@@ -103,7 +113,7 @@ def test_pangur_newer_more():
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
-    check_expected(
+    check_expected_path_states(
         actual,
         [
             ("/", "bar", State.Same),
@@ -150,7 +160,7 @@ def test_pangur_updated_subdir():
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
-    check_expected(
+    check_expected_path_states(
         actual,
         [
             ("/", "bar", State.Same),
@@ -189,7 +199,7 @@ def test_pangur_new_subdir():
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
-    check_expected(
+    check_expected_path_states(
         actual,
         [
             ("/", "bar", State.Same),
@@ -243,7 +253,7 @@ def test_pangur_nested_subdirs():
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
-    check_expected(
+    check_expected_path_states(
         actual,
         [
             ("/", "bar", State.Same),
@@ -289,7 +299,7 @@ def test_pangur_removed_subdir():
         ],
     )
     actual = compare_tree("/", src_dir, dst_dir, Policy())
-    check_expected(
+    check_expected_path_states(
         actual,
         [
             ("/", "bar", State.Same),
@@ -298,5 +308,36 @@ def test_pangur_removed_subdir():
             ("/baz/", "beta", State.DstOnly),
             ("/", "baz", State.DirLeave),
             ("/", "foo", State.SrcNewer),
+        ],
+    )
+
+
+def test_compute_operations():
+    data = [
+        ("/", "bar", State.Same),
+        ("/", "baz", State.DirEnter),
+        ("/baz/", "alpha", State.SrcOnly),
+        ("/baz/", "beta", State.DirEnter),
+        ("/baz/beta/", "epsilon", State.SrcOnly),
+        ("/baz/beta/", "gamma", State.DirEnter),
+        ("/baz/beta/gamma/", "kappa", State.SrcOnly),
+        ("/baz/beta/gamma/", "lambda", State.SrcOnly),
+        ("/baz/beta/", "gamma", State.DirLeave),
+        ("/baz/beta/", "omega", State.SrcOnly),
+        ("/baz/", "beta", State.DirLeave),
+        ("/", "baz", State.DirLeave),
+        ("/", "foo", State.SrcNewer),
+    ]
+    path_states = [PathState(p, InfoEntry(n, FileMode(0)), s) for p, n, s in data]
+    actual = compute_operations(path_states)
+    check_expected_path_operations(
+        actual,
+        [
+            ("/baz/", "alpha", Operation.SrcCopy),
+            ("/baz/beta/", "epsilon", Operation.SrcCopy),
+            ("/baz/beta/gamma/", "kappa", Operation.SrcCopy),
+            ("/baz/beta/gamma/", "lambda", Operation.SrcCopy),
+            ("/baz/beta/", "omega", Operation.SrcCopy),
+            ("/", "foo", Operation.SrcCopy),
         ],
     )
