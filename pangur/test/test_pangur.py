@@ -59,20 +59,28 @@ def test_modify_window():
 
 def test_pangur_same():
     src_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
             FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    actual = compare_tree("/", src_dir, src_dir, Policy())
-    check_expected_path_states(actual, [("/", "bar", State.Same), ("/", "foo", State.Same)])
+    actual = compare_tree("", src_dir, src_dir, Policy())
+    check_expected_path_states(
+        actual,
+        [
+            ("", "", State.DirEnter, 0),
+            ("", "bar", State.Same, -1),
+            ("", "foo", State.Same, -1),
+            ("", "", State.DirLeave, 0),
+        ],
+    )
 
 
 def test_pangur_newer():
     src_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
@@ -80,55 +88,65 @@ def test_pangur_newer():
         ],
     )
     dst_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
             FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    actual = compare_tree("/", src_dir, dst_dir, Policy())
-    check_expected_path_states(actual, [("/", "bar", State.Same), ("/", "foo", State.SrcNewer)])
+    actual = compare_tree("", src_dir, dst_dir, Policy())
+    check_expected_path_states(
+        actual,
+        [
+            ("", "", State.DirEnter, 1),
+            ("", "bar", State.Same, -1),
+            ("", "foo", State.SrcNewer, -1),
+            ("", "", State.DirLeave, 0),
+        ],
+    )
 
 
 def test_pangur_newer_more():
     src_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
-            FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
-            FileInfo("baz", FileMode_File, TimeStamp(5000), 800),
-            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
-            FileInfo("miz", FileMode_File, TimeStamp(6000), 800),
-            FileInfo("wiz", FileMode_File, TimeStamp(6000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(3000), 500),  # updated
+            FileInfo("baz", FileMode_File, TimeStamp(5000), 800),  # new
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),  # same
+            FileInfo("miz", FileMode_File, TimeStamp(6000), 800),  # new
+            FileInfo("wiz", FileMode_File, TimeStamp(6000), 800),  # new
         ],
     )
     dst_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
-            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
-            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
-            FileInfo("quux", FileMode_File, TimeStamp(4000), 800),
+            FileInfo("foo", FileMode_File, TimeStamp(1000), 500),  # old
+            FileInfo("bar", FileMode_File, TimeStamp(2000), 800),  # same
+            FileInfo("quux", FileMode_File, TimeStamp(4000), 800),  # removed
         ],
     )
-    actual = compare_tree("/", src_dir, dst_dir, Policy())
+    actual = compare_tree("", src_dir, dst_dir, Policy())
     check_expected_path_states(
         actual,
         [
-            ("/", "bar", State.Same),
-            ("/", "baz", State.SrcOnly),
-            ("/", "foo", State.SrcNewer),
-            ("/", "miz", State.SrcOnly),
-            ("/", "quux", State.DstOnly),
-            ("/", "wiz", State.SrcOnly),
+            ("", "", State.DirEnter, 4),
+            ("", "bar", State.Same, -1),
+            ("", "baz", State.SrcOnly, -1),
+            ("", "foo", State.SrcNewer, -1),
+            ("", "miz", State.SrcOnly, -1),
+            ("", "quux", State.DstOnly, -1),
+            ("", "wiz", State.SrcOnly, -1),
+            ("", "", State.DirLeave, 1),  # quux
         ],
     )
 
 
 def test_pangur_updated_subdir():
     src_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
@@ -144,7 +162,7 @@ def test_pangur_updated_subdir():
         ],
     )
     dst_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
@@ -159,23 +177,25 @@ def test_pangur_updated_subdir():
             FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    actual = compare_tree("/", src_dir, dst_dir, Policy())
+    actual = compare_tree("", src_dir, dst_dir, Policy())
     check_expected_path_states(
         actual,
         [
-            ("/", "bar", State.Same),
-            ("/", "baz", State.DirEnter),
-            ("/baz/", "alpha", State.SrcNewer),
-            ("/baz/", "beta", State.Same),
-            ("/", "baz", State.DirLeave),
-            ("/", "foo", State.SrcNewer),
+            ("", "", State.DirEnter, 1),
+            ("", "bar", State.Same, -1),
+            ("", "baz", State.DirEnter, 1),
+            ("baz", "alpha", State.SrcNewer, -1),
+            ("baz", "beta", State.Same, -1),
+            ("", "baz", State.DirLeave, 0),
+            ("", "foo", State.SrcNewer, -1),
+            ("", "", State.DirLeave, 0),
         ],
     )
 
 
 def test_pangur_new_subdir():
     src_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
@@ -191,30 +211,32 @@ def test_pangur_new_subdir():
         ],
     )
     dst_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
             FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    actual = compare_tree("/", src_dir, dst_dir, Policy())
+    actual = compare_tree("", src_dir, dst_dir, Policy())
     check_expected_path_states(
         actual,
         [
-            ("/", "bar", State.Same),
-            ("/", "baz", State.DirEnter),
-            ("/baz/", "alpha", State.SrcOnly),
-            ("/baz/", "beta", State.SrcOnly),
-            ("/", "baz", State.DirLeave),
-            ("/", "foo", State.SrcNewer),
+            ("", "", State.DirEnter, 2),
+            ("", "bar", State.Same, -1),
+            ("", "baz", State.DirEnter, 2),
+            ("baz", "alpha", State.SrcOnly, -1),
+            ("baz", "beta", State.SrcOnly, -1),
+            ("", "baz", State.DirLeave, 0),
+            ("", "foo", State.SrcNewer, -1),
+            ("", "", State.DirLeave, 0),
         ],
     )
 
 
 def test_pangur_nested_subdirs():
     src_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(3000), 500),
@@ -245,32 +267,32 @@ def test_pangur_nested_subdirs():
         ],
     )
     dst_dir = DirInfo(
-        "/",
+        "",
         mode=FileMode_Dir,
         entries=[
             FileInfo("foo", FileMode_File, TimeStamp(1000), 500),
             FileInfo("bar", FileMode_File, TimeStamp(2000), 800),
         ],
     )
-    actual = compare_tree("/", src_dir, dst_dir, Policy())
+    actual = compare_tree("", src_dir, dst_dir, Policy())
     check_expected_path_states(
         actual,
         [
-            ("/", "/", State.DirEnter, 1),
-            ("/", "bar", State.Same, -1),
-            ("/baz", "", State.DirEnter, -1),
-            ("/baz/", "alpha", State.SrcOnly, -1),
-            ("/baz/beta/", "beta", State.DirEnter, -1),
-            ("/baz/beta/", "epsilon", State.SrcOnly, -1),
-            ("/baz/beta/gamma/", "", State.DirEnter, -1),
-            ("/baz/beta/gamma/", "kappa", State.SrcOnly, -1),
-            ("/baz/beta/gamma/", "lambda", State.SrcOnly, -1),
-            ("/baz/beta/gamma/", "", State.DirLeave, -1),
-            ("/baz/beta/", "omega", State.SrcOnly, -1),
-            ("/baz/beta/", "", State.DirLeave, -1),
-            ("/baz/", "", State.DirLeave, -1),
-            ("/", "foo", State.SrcNewer, -1),
-            ("/", "/", State.DirLeave, -1),
+            ("", "", State.DirEnter, 2),
+            ("", "bar", State.Same, -1),
+            ("", "baz", State.DirEnter, 2),
+            ("baz", "alpha", State.SrcOnly, -1),
+            ("baz", "beta", State.DirEnter, 3),
+            ("baz/beta", "epsilon", State.SrcOnly, -1),
+            ("baz/beta", "gamma", State.DirEnter, 2),
+            ("baz/beta/gamma", "kappa", State.SrcOnly, -1),
+            ("baz/beta/gamma", "lambda", State.SrcOnly, -1),
+            ("baz/beta", "gamma", State.DirLeave, 0),
+            ("baz/beta", "omega", State.SrcOnly, -1),
+            ("baz", "beta", State.DirLeave, 0),
+            ("", "baz", State.DirLeave, 0),
+            ("", "foo", State.SrcNewer, -1),
+            ("", "", State.DirLeave, 0),
         ],
     )
 
@@ -304,7 +326,7 @@ def test_pangur_removed_subdir():
     check_expected_path_states(
         actual,
         [
-            ("", "", State.DirEnter, 0),
+            ("", "", State.DirEnter, 1),
             ("", "bar", State.Same, -1),
             ("", "baz", State.DirEnter, 0),
             ("baz", "alpha", State.DstOnly, -1),

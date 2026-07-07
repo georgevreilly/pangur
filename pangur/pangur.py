@@ -189,10 +189,13 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                         path_states.append(PathState(path, src, State.Same, -1))
                     else:
                         path_states.append(PathState(path, src, State.SizeDiffer, -1))
+                        changes += 1
                 elif time_cmp > 0:
                     path_states.append(PathState(path, src, State.SrcNewer, -1))
+                    changes += 1
                 else:
                     path_states.append(PathState(path, dst, State.DstNewer, -1))
+                    changes += 1
             else:
                 # src and dst have different types: treat as weird
                 assert src is not None
