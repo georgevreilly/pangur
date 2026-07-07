@@ -132,8 +132,9 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
 
         if name_cmp < 0:
             assert src is not None
+            changes += 1
             if isinstance(src, DirInfo):
-                # path_states.append(PathState(path, src, State.DirEnter))
+                # There is no corresponding dst dir: compare against an empty DirInfo
                 path_states.extend(
                     compare_tree(
                         os.path.join(path, src.name),
@@ -142,18 +143,17 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                         policy,
                     )
                 )
-                # path_states.append(PathState(path, src, State.DirLeave))
             elif isinstance(src, SymlinkInfo):
                 # TODO: validate that symlink is relative and within src
                 pass
             else:
                 path_states.append(PathState(path, src, State.SrcOnly, -1))
-            changes += 1
             i += 1
         elif name_cmp > 0:
             assert dst is not None
+            dst_only += 1
             if isinstance(dst, DirInfo):
-                # path_states.append(PathState(path, dst, State.DirEnter))
+                # There is no corresponding src dir: compare against an empty DirInfo
                 path_states.extend(
                     compare_tree(
                         os.path.join(path, dst.name),
@@ -162,48 +162,43 @@ def compare_tree(path: str, srcdir: DirInfo, dstdir: DirInfo, policy: Policy) ->
                         policy,
                     )
                 )
-                # path_states.append(PathState(path, dst, State.DirLeave))
             elif isinstance(dst, SymlinkInfo):
                 # TODO: validate
                 pass
             else:
                 path_states.append(PathState(path, dst, State.DstOnly, -1))
-            dst_only += 1
             j += 1
         elif name_cmp == 0:
             # Identical names in src and dst
             if isinstance(src, DirInfo) and isinstance(dst, DirInfo):
-                # path_states.append(PathState(path, src, State.DirEnter))
                 path_states.extend(compare_tree(os.path.join(path, src.name), src, dst, policy))
-                # path_states.append(PathState(path, src, State.DirLeave))
             elif isinstance(src, SymlinkInfo) and isinstance(dst, SymlinkInfo):
                 # TODO: something
                 pass
             elif isinstance(src, FileInfo) and isinstance(dst, FileInfo):
                 # TODO: modes, user, group, etc
                 time_cmp = policy.compare_times(src.mtime, dst.mtime)
+                state = State.Weird
                 if time_cmp == 0:
                     if src.size == dst.size:
                         # Considered identical
                         # TODO: hash contents for true equality
-                        path_states.append(PathState(path, src, State.Same, -1))
+                        state = State.Same
                     else:
-                        path_states.append(PathState(path, src, State.SizeDiffer, -1))
-                        changes += 1
+                        state = State.SizeDiffer
                 elif time_cmp > 0:
-                    path_states.append(PathState(path, src, State.SrcNewer, -1))
-                    changes += 1
+                    state = State.SrcNewer
                 else:
-                    path_states.append(PathState(path, dst, State.DstNewer, -1))
-                    changes += 1
+                    state = State.DstNewer
+                path_states.append(PathState(path, dst, state, -1))
+                changes += state != State.Same
             else:
-                # src and dst have different types: treat as weird
+                # TODO: src and dst have different types: treat as weird
                 assert src is not None
                 path_states.append(PathState(path, src, State.Weird, -1))
+                changes += 1
             i += 1
             j += 1
-        else:
-            print(f"Huh: {path=}, {src=}, {dst=}")
 
     parent_path = os.path.dirname(path)
     return (
