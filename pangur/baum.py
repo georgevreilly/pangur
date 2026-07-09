@@ -10,9 +10,9 @@ class Baum:
     FINAL_CHILD: str = "    "  # prefix: no more siblings
     FINAL_ENTRY: str = "└── "  # connector: elbow
 
-    PIPE: str = "|" # prefix
+    PIPE: str = "|"  # prefix
     TEE: str = "+"  # connector: tee
-    BLANK: str = " " # prefix
+    BLANK: str = " "  # prefix
     ELBOW: str = "-"  # connector: elbow
 
     Short2Long: dict[str, str] = {
