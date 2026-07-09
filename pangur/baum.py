@@ -61,32 +61,6 @@ class Baum:
 
 
 def print_tree(root: str, dir: DirInfo) -> None:
-    def visit(dir: DirInfo, prefix: str) -> tuple[int, int]:
-        dirs = 1
-        files = 0
-        count = len(dir.entries)
-        for entry in sorted(dir.entries, key=lambda e: e.name):
-            count -= 1
-            connector = Baum.OTHER_ENTRY if count else Baum.FINAL_ENTRY
-            if isinstance(entry, DirInfo):
-                print(f"{prefix}{connector}{entry.name}")
-                d, f = visit(entry, f"{prefix}{Baum.OTHER_CHILD if count else Baum.FINAL_CHILD}")
-                dirs += d
-                files += f
-            elif isinstance(entry, SymlinkInfo):
-                print(f"{prefix}{connector}{entry.name} -> {entry.target}")
-                files += 1
-            elif isinstance(entry, FileInfo):
-                print(f"{prefix}{connector}{entry.name}")
-                files += 1
-        return dirs, files
-
-    print(root)
-    d, f = visit(dir, "")
-    print(f"\n{d} directories, {f} files")
-
-
-def print_tree2(root: str, dir: DirInfo) -> None:
     print(root)
     vr = Baum.visit(dir)
     for prefix, entry in vr.entries:
@@ -99,4 +73,4 @@ if __name__ == "__main__":
     # import pprint
 
     # pprint.pprint(walk_tree(sys.argv[1]))
-    print_tree2("", walk_tree(sys.argv[1]))
+    print_tree("", walk_tree(sys.argv[1]))
