@@ -338,32 +338,44 @@ def test_pangur_removed_subdir():
     )
 
 
+def make_path_states(data: list[tuple[str, str, State, int]]) -> list[PathState]:
+    path_states = []
+    for p, n, s, c in data:
+        if s in (State.DirEnter, State.DirLeave):
+            e = DirInfo(n, FileMode_Dir, [])
+        else:
+            e = FileInfo(n, FileMode_File, TimeStamp(0), 0)
+        path_states.append(PathState(p, e, s, c))
+    return path_states
+
+
 def test_compute_operations():
-    data = [
-        ("/", "bar", State.Same),
-        ("/", "baz", State.DirEnter),
-        ("/baz/", "alpha", State.SrcOnly),
-        ("/baz/", "beta", State.DirEnter),
-        ("/baz/beta/", "epsilon", State.SrcOnly),
-        ("/baz/beta/", "gamma", State.DirEnter),
-        ("/baz/beta/gamma/", "kappa", State.SrcOnly),
-        ("/baz/beta/gamma/", "lambda", State.SrcOnly),
-        ("/baz/beta/", "gamma", State.DirLeave),
-        ("/baz/beta/", "omega", State.SrcOnly),
-        ("/baz/", "beta", State.DirLeave),
-        ("/", "baz", State.DirLeave),
-        ("/", "foo", State.SrcNewer),
-    ]
-    path_states = [PathState(p, InfoEntry(n, FileMode(0)), s, 0) for p, n, s in data]
+    path_states = make_path_states([
+        ("", "", State.DirEnter, 2),
+        ("", "bar", State.Same, -1),
+        ("", "baz", State.DirEnter, 2),
+        ("baz", "alpha", State.SrcOnly, -1),
+        ("baz", "beta", State.DirEnter, 3),
+        ("baz/beta", "epsilon", State.SrcOnly, -1),
+        ("baz/beta", "gamma", State.DirEnter, 2),
+        ("baz/beta/gamma", "kappa", State.SrcOnly, -1),
+        ("baz/beta/gamma", "lambda", State.SrcOnly, -1),
+        ("baz/beta", "gamma", State.DirLeave, 0),
+        ("baz/beta", "omega", State.SrcOnly, -1),
+        ("baz", "beta", State.DirLeave, 0),
+        ("", "baz", State.DirLeave, 0),
+        ("", "foo", State.SrcNewer, -1),
+        ("", "", State.DirLeave, 0),
+    ])
     actual = compute_operations(path_states)
     check_expected_path_operations(
         actual,
         [
-            ("/baz/", "alpha", Operation.SrcCopy),
-            ("/baz/beta/", "epsilon", Operation.SrcCopy),
-            ("/baz/beta/gamma/", "kappa", Operation.SrcCopy),
-            ("/baz/beta/gamma/", "lambda", Operation.SrcCopy),
-            ("/baz/beta/", "omega", Operation.SrcCopy),
-            ("/", "foo", Operation.SrcCopy),
+            ("baz", "alpha", Operation.SrcCopy),
+            ("baz/beta", "epsilon", Operation.SrcCopy),
+            ("baz/beta/gamma", "kappa", Operation.SrcCopy),
+            ("baz/beta/gamma", "lambda", Operation.SrcCopy),
+            ("baz/beta", "omega", Operation.SrcCopy),
+            ("", "foo", Operation.SrcCopy),
         ],
     )
