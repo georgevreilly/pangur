@@ -63,6 +63,24 @@ class SymlinkInfo(InfoEntry):
         return f"SymlinkEntry('{self.name}' -> '{self.target}, {self.mode}')"
 
 
+def walk_tree(directory: str) -> DirInfo:
+    # TODO: mechanism for filtering (e.g., hidden files) and sorting
+    entries: list[InfoEntry] = []
+    for e in os.scandir(directory):
+        sr = e.stat(follow_symlinks=False)
+        if e.is_dir():
+            entry = walk_tree(e.path)
+        elif e.is_symlink():
+            # TODO: capture symlinks only within the tree
+            entry = SymlinkInfo(e.name, FileMode(sr.st_mode), os.readlink(e.path))
+        else:
+            # TODO: capture user, group, xattrs
+            entry = FileInfo(e.name, FileMode(sr.st_mode), TimeStamp(sr.st_mtime), sr.st_size)
+        entries.append(entry)
+    sr = os.stat(directory, follow_symlinks=False)
+    return DirInfo(os.path.basename(directory), FileMode(sr.st_mode), entries)
+
+
 class State(Enum):
     Same = auto()
     SrcNewer = auto()
@@ -237,20 +255,3 @@ def compute_operations(path_states: list[PathState]) -> list[PathOperation]:
         if op != Operation.NoOp:
             path_ops.append(PathOperation(ps.path, ps.entry, op))
     return path_ops
-
-
-def walk_tree(root: str) -> DirInfo:
-    # TODO: mechanism for filtering and sorting
-    entries: list[InfoEntry] = []
-    for e in os.scandir(root):
-        sr = e.stat(follow_symlinks=False)
-        if e.is_dir():
-            entry = walk_tree(e.path)
-        elif e.is_symlink():
-            # TODO: capture symlinks only within the tree
-            entry = SymlinkInfo(e.name, FileMode(sr.st_mode), os.readlink(e.path))
-        else:
-            entry = FileInfo(e.name, FileMode(sr.st_mode), TimeStamp(sr.st_mtime), sr.st_size)
-        entries.append(entry)
-    sr = os.stat(root, follow_symlinks=False)
-    return DirInfo(os.path.basename(root), FileMode(sr.st_mode), entries)
